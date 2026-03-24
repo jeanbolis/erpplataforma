@@ -1,1 +1,0 @@
-print("Mini ERP iniciado!")
