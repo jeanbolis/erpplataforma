@@ -1,0 +1,11 @@
+id;codigo;nome;saldo
+14;BAIXA1774525846;Produto Baixa Financeira;5.00
+11;COMP1774451934;Produto Compra Teste;100.00
+4;P002;Produto CRUD;0.00
+6;P1774448722;Produto CRUD;0.00
+8;ESTOQUE001;Produto Estoque Teste;70.00
+9;ESTVAL001;Produto Estoque Validação;30.00
+13;FIN1774522433;Produto Financeiro Teste;30.00
+10;SERV1774451329;Produto Serviço Estoque;25.00
+1;P001;Produto Teste ERP;0.00
+12;VENDA1774458673;Produto Venda Teste;20.00
