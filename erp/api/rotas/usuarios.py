@@ -204,3 +204,44 @@ def meu_perfil(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
+@router.get("")
+def listar_auditoria(
+    usuario_id: int | None = None,
+    acao: str | None = None,
+    data_inicio: str | None = None,
+    data_fim: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    order_by: str = Query("criado_em"),
+    order_dir: str = Query("desc"),
+    usuario_logado=Depends(get_usuario_autorizado("qualquer"))
+):
+    usuario_logado_id = int(usuario_logado["sub"])
+    papeis = usuario_logado["papeis"]
+
+    if "ADMIN" not in papeis:
+        usuario_id = usuario_logado_id
+
+    return AuditoriaServico.listar_auditoria_filtrada(
+        usuario_id=usuario_id,
+        acao=acao,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        page=page,
+        page_size=page_size,
+        order_by=order_by,
+        order_dir=order_dir
+    )    
+
+@router.get("")
+def listar_usuarios(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    order_by: str = Query("id"),
+    order_dir: str = Query("asc"),
+    usuario_logado=Depends(get_usuario_autorizado("admin"))
+):
+    return UsuarioServico.listar_usuarios_paginado(
+        page, page_size, order_by, order_dir
+    )
+    

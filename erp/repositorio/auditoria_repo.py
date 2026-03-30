@@ -1,4 +1,5 @@
 from erp.db import get_connection
+from erp.utils.paginacao import calcular_offset
 
 
 class AuditoriaRepository:
@@ -101,6 +102,61 @@ class AuditoriaRepository:
 
         sql += " ORDER BY criado_em DESC LIMIT %s"
         params.append(limit)
+
+        with get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(sql, tuple(params))
+            return cursor.fetchall()
+
+    @staticmethod
+    def listar_com_filtros(
+        usuario_id=None,
+        acao=None,
+        data_inicio=None,
+        data_fim=None,
+        page=1,
+        page_size=20,
+        order_by="criado_em",
+        order_dir="desc"
+    ):
+        offset = calcular_offset(page, page_size)
+
+        order_dir = "DESC" if order_dir.lower() == "desc" else "ASC"
+
+        sql = f"""
+            SELECT
+                id,
+                usuario_id,
+                email_usuario,
+                acao,
+                recurso,
+                detalhes,
+                ip_origem,
+                criado_em
+            FROM auditoria
+            WHERE 1 = 1
+        """
+
+        params = []
+
+        if usuario_id:
+            sql += " AND usuario_id = %s"
+            params.append(usuario_id)
+
+        if acao:
+            sql += " AND acao = %s"
+            params.append(acao)
+
+        if data_inicio:
+            sql += " AND criado_em >= %s"
+            params.append(data_inicio)
+
+        if data_fim:
+            sql += " AND criado_em <= %s"
+            params.append(data_fim)
+
+        sql += f" ORDER BY {order_by} {order_dir} LIMIT %s OFFSET %s"
+        params.extend([page_size, offset])
 
         with get_connection() as conn:
             cursor = conn.cursor(dictionary=True)

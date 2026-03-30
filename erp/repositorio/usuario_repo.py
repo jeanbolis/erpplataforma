@@ -1,5 +1,5 @@
 from erp.db import get_connection
-
+from erp.utils.paginacao import calcular_offset
 
 class UsuarioRepository:
 
@@ -126,3 +126,34 @@ class UsuarioRepository:
             cursor = conn.cursor(dictionary=True)
             cursor.execute(sql, (usuario_id,))
             return cursor.fetchone()
+        
+
+    @staticmethod
+    def listar_usuarios_paginado(
+        page=1,
+        page_size=20,
+        order_by="id",
+        order_dir="asc"
+    ):
+        offset = calcular_offset(page, page_size)
+        order_dir = "DESC" if order_dir.lower() == "desc" else "ASC"
+
+        sql = f"""
+            SELECT
+                u.id,
+                u.nome,
+                u.email,
+                u.ativo,
+                GROUP_CONCAT(p.nome ORDER BY p.nome SEPARATOR ', ') AS papeis
+            FROM usuarios u
+            LEFT JOIN usuario_papel up ON up.usuario_id = u.id
+            LEFT JOIN papeis p ON p.id = up.papel_id
+            GROUP BY u.id, u.nome, u.email, u.ativo
+            ORDER BY {order_by} {order_dir}
+            LIMIT %s OFFSET %s
+        """
+
+        with get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(sql, (page_size, offset))
+            return cursor.fetchall()

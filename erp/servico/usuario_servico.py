@@ -170,3 +170,14 @@ class UsuarioServico:
         usuario["papeis"] = papeis
 
         return usuario
+    
+    @staticmethod
+    def listar_usuarios_paginado(
+        page: int,
+        page_size: int,
+        order_by: str,
+        order_dir: str
+    ):
+        return UsuarioRepository.listar_usuarios_paginado(
+            page, page_size, order_by, order_dir
+        )
