@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from erp.api.deps import get_usuario_autorizado
 from erp.servico.usuario_servico import UsuarioServico
 from erp.servico.auditoria_servico import AuditoriaServico
 from pydantic import BaseModel
+
 
 
 router = APIRouter(
