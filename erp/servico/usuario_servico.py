@@ -131,10 +131,7 @@ class UsuarioServico:
             return cursor.fetchone()
         
     @staticmethod
-    def resetar_senha_admin(
-        usuario_id: int,
-        nova_senha: str
-    ):
+    def resetar_senha_admin(usuario_id: int, nova_senha: str):
         usuario = UsuarioRepository.obter_por_id(usuario_id)
         if not usuario:
             raise ValueError("Usuário não encontrado")

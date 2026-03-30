@@ -55,8 +55,10 @@ def listar_usuarios(
     return UsuarioServico.listar_usuarios()
 
 
+
 class AlterarPapelRequest(BaseModel):
     papel: str
+
 
 @router.put("/{usuario_id}/papel")
 def alterar_papel(
@@ -80,6 +82,7 @@ def alterar_papel(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
     
 class TrocaSenhaRequest(BaseModel):
     senha_atual: str
@@ -113,6 +116,9 @@ def trocar_senha(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+
+    
 class ResetSenhaRequest(BaseModel):
     nova_senha: str
 
