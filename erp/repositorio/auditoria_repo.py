@@ -39,3 +39,26 @@ class AuditoriaRepository:
             cursor = conn.cursor(dictionary=True)
             cursor.execute(sql, (limit,))
             return cursor.fetchall()        
+        
+    @staticmethod
+    def listar_por_usuario(usuario_id: int, limit: int = 100):
+        sql = """
+            SELECT
+                id,
+                usuario_id,
+                email_usuario,
+                acao,
+                recurso,
+                detalhes,
+                ip_origem,
+                criado_em
+            FROM auditoria
+            WHERE usuario_id = %s
+            ORDER BY criado_em DESC
+            LIMIT %s
+        """
+
+        with get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(sql, (usuario_id, limit))
+            return cursor.fetchall()  

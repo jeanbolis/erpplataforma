@@ -23,3 +23,7 @@ class AuditoriaServico:
     @staticmethod
     def listar_auditorias(limit: int = 100):
         return AuditoriaRepository.listar(limit)
+    
+    @staticmethod
+    def listar_auditoria_por_usuario(usuario_id: int, limit: int = 100):
+        return AuditoriaRepository.listar_por_usuario(usuario_id, limit)
