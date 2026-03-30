@@ -142,3 +142,11 @@ class UsuarioServico:
         ).decode("utf-8")
 
         UsuarioRepository.atualizar_senha(usuario_id, senha_hash)
+
+    @staticmethod
+    def inativar_usuario(usuario_id: int):
+        usuario = UsuarioRepository.obter_por_id(usuario_id)
+        if not usuario:
+            raise ValueError("Usuário não encontrado")
+
+        UsuarioRepository.inativar_usuario(usuario_id)

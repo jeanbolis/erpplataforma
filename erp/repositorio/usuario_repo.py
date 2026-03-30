@@ -17,10 +17,12 @@ class UsuarioRepository:
     @staticmethod
     def obter_por_email(email: str):
         sql = "SELECT * FROM usuarios WHERE email = %s AND ativo = 1"
+
         with get_connection() as conn:
             cur = conn.cursor(dictionary=True)
             cur.execute(sql, (email,))
             return cur.fetchone()
+
 
     @staticmethod
     def vincular_papel(usuario_id: int, papel_id: int):
@@ -98,3 +100,10 @@ class UsuarioRepository:
             cursor = conn.cursor(dictionary=True)
             cursor.execute(sql, (usuario_id,))
             return cursor.fetchone()
+        
+    @staticmethod
+    def inativar_usuario(usuario_id: int):
+        sql = "UPDATE usuarios SET ativo = 0 WHERE id = %s"
+
+        with get_connection() as conn:
+            conn.cursor().execute(sql, (usuario_id,))

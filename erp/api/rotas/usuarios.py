@@ -145,3 +145,31 @@ def resetar_senha_admin(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@router.put("/{usuario_id}/inativar")
+def inativar_usuario(
+    usuario_id: int,
+    usuario_logado=Depends(get_usuario_autorizado("admin"))
+):
+    # ADMIN não pode se auto-inativar
+    if int(usuario_logado["sub"]) == usuario_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Você não pode inativar o próprio usuário"
+        )
+
+    try:
+        UsuarioServico.inativar_usuario(usuario_id)
+
+        AuditoriaServico.auditar(
+            usuario=usuario_logado,
+            acao="INATIVAR_USUARIO",
+            recurso="usuarios",
+            detalhes=f"Usuário {usuario_id} inativado"
+        )
+
+        return {"mensagem": "Usuário inativado com sucesso"}
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    
