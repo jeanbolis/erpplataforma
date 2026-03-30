@@ -193,3 +193,14 @@ def reativar_usuario(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
+@router.get("/me")
+def meu_perfil(
+    usuario_logado=Depends(get_usuario_autorizado("qualquer"))
+):
+    try:
+        usuario_id = int(usuario_logado["sub"])
+        return UsuarioServico.obter_me(usuario_id)
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    

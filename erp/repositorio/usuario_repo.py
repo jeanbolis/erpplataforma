@@ -114,3 +114,15 @@ class UsuarioRepository:
 
         with get_connection() as conn:
             conn.cursor().execute(sql, (usuario_id,))
+
+    @staticmethod
+    def obter_perfil(usuario_id: int):
+        sql = """
+            SELECT id, nome, email, ativo, criado_em
+            FROM usuarios
+            WHERE id = %s
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(sql, (usuario_id,))
+            return cursor.fetchone()

@@ -158,3 +158,15 @@ class UsuarioServico:
             raise ValueError("Usuário não encontrado")
 
         UsuarioRepository.reativar_usuario(usuario_id)
+
+    @staticmethod
+    def obter_me(usuario_id: int):
+        usuario = UsuarioRepository.obter_perfil(usuario_id)
+        if not usuario:
+            raise ValueError("Usuário não encontrado")
+
+        # Anexar papéis
+        papeis = UsuarioRepository.papeis_do_usuario(usuario_id)
+        usuario["papeis"] = papeis
+
+        return usuario
