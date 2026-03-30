@@ -150,3 +150,11 @@ class UsuarioServico:
             raise ValueError("Usuário não encontrado")
 
         UsuarioRepository.inativar_usuario(usuario_id)
+
+    @staticmethod
+    def reativar_usuario(usuario_id: int):
+        usuario = UsuarioRepository.obter_por_id(usuario_id)
+        if not usuario:
+            raise ValueError("Usuário não encontrado")
+
+        UsuarioRepository.reativar_usuario(usuario_id)

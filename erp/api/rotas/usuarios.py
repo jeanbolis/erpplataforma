@@ -173,3 +173,23 @@ def inativar_usuario(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
+@router.put("/{usuario_id}/reativar")
+def reativar_usuario(
+    usuario_id: int,
+    usuario_logado=Depends(get_usuario_autorizado("admin"))
+):
+    try:
+        UsuarioServico.reativar_usuario(usuario_id)
+
+        AuditoriaServico.auditar(
+            usuario=usuario_logado,
+            acao="REATIVAR_USUARIO",
+            recurso="usuarios",
+            detalhes=f"Usuário {usuario_id} reativado"
+        )
+
+        return {"mensagem": "Usuário reativado com sucesso"}
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    

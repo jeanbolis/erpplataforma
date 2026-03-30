@@ -107,3 +107,10 @@ class UsuarioRepository:
 
         with get_connection() as conn:
             conn.cursor().execute(sql, (usuario_id,))
+
+    @staticmethod
+    def reativar_usuario(usuario_id: int):
+        sql = "UPDATE usuarios SET ativo = 1 WHERE id = %s"
+
+        with get_connection() as conn:
+            conn.cursor().execute(sql, (usuario_id,))
