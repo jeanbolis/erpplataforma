@@ -34,12 +34,18 @@ class AuditoriaServico:
         acao: str | None,
         data_inicio: str | None,
         data_fim: str | None,
-        limit: int
+        page: int,
+        page_size: int,
+        order_by: str,
+        order_dir: str
     ):
         return AuditoriaRepository.listar_com_filtros(
             usuario_id=usuario_id,
             acao=acao,
             data_inicio=data_inicio,
             data_fim=data_fim,
-            limit=limit
+            page=page,
+            page_size=page_size,
+            order_by=order_by,
+            order_dir=order_dir
         )

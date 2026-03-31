@@ -5,3 +5,4 @@ PyJWT
 install fastapi uvicorn
 uvicorn erp.api.main:app ## para abrir o navegador e mostrar a API
 http://127.0.0.1:8000/docs ## colcoar no navegador
+openpyxl

@@ -1,59 +1,92 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from erp.api.deps import get_usuario_autorizado
 from erp.servico.auditoria_servico import AuditoriaServico
-from fastapi import Query
-
+from erp.utils.exportacao import exportar_csv, exportar_excel
 
 router = APIRouter(
     prefix="/auditoria",
     tags=["Auditoria"]
 )
 
+# ============================================================
+# EXPORTAÇÕES (ROTAS FIXAS)
+# ============================================================
 
-@router.get("")
-def listar_auditoria(
-    usuario=Depends(get_usuario_autorizado("financeiro")),
-    limit: int = Query(100, ge=1, le=500)
-):
-    return AuditoriaServico.listar_auditorias(limit)
-
-@router.get("/{usuario_id}")
-def listar_auditoria_usuario(
-    usuario_id: int,
-    usuario_logado=Depends(get_usuario_autorizado("qualquer")),
-    limit: int = Query(100, ge=1, le=500)
-):
-    usuario_logado_id = int(usuario_logado["sub"])
-    papeis = usuario_logado.get("papeis", [])
-
-    # Regra de acesso:
-    # - ADMIN pode ver qualquer usuário
-    # - usuário comum só vê a própria auditoria
-    if "ADMIN" not in papeis and usuario_logado_id != usuario_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Você não tem permissão para acessar a auditoria deste usuário"
-        )
-
-    return AuditoriaServico.listar_auditoria_por_usuario(usuario_id, limit)
-
-
-
-@router.get("")
-def listar_auditoria_filtrada(
+@router.get("/export/csv")
+def exportar_auditoria_csv(
     usuario_id: int | None = Query(None),
     acao: str | None = Query(None),
     data_inicio: str | None = Query(None),
     data_fim: str | None = Query(None),
-    limit: int = Query(100, ge=1, le=500),
     usuario_logado=Depends(get_usuario_autorizado("qualquer"))
 ):
     usuario_logado_id = int(usuario_logado["sub"])
-    papeis = usuario_logado.get("papeis", [])
+    papeis = usuario_logado["papeis"]
 
-    # Regra de acesso
+    # Usuário comum só exporta a própria auditoria
     if "ADMIN" not in papeis:
-        # usuário comum só pode ver a própria auditoria
+        usuario_id = usuario_logado_id
+
+    dados = AuditoriaServico.listar_auditoria_filtrada(
+        usuario_id=usuario_id,
+        acao=acao,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        page=1,
+        page_size=100_000,
+        order_by="criado_em",
+        order_dir="desc"
+    )
+
+    return exportar_csv("auditoria.csv", dados)
+
+@router.get("/export/excel")
+def exportar_auditoria_excel(
+    usuario_id: int | None = Query(None),
+    acao: str | None = Query(None),
+    data_inicio: str | None = Query(None),
+    data_fim: str | None = Query(None),
+    usuario_logado=Depends(get_usuario_autorizado("qualquer"))
+):
+    usuario_logado_id = int(usuario_logado["sub"])
+    papeis = usuario_logado["papeis"]
+
+    if "ADMIN" not in papeis:
+        usuario_id = usuario_logado_id
+
+    dados = AuditoriaServico.listar_auditoria_filtrada(
+        usuario_id=usuario_id,
+        acao=acao,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        page=1,
+        page_size=100_000,
+        order_by="criado_em",
+        order_dir="desc"
+    )
+
+    return exportar_excel("auditoria.xlsx", dados)
+
+# ============================================================
+# LISTAGEM GERAL COM FILTROS + PAGINAÇÃO
+# ============================================================
+
+@router.get("")
+def listar_auditoria(
+    usuario_id: int | None = Query(None),
+    acao: str | None = Query(None),
+    data_inicio: str | None = Query(None),
+    data_fim: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    order_by: str = Query("criado_em"),
+    order_dir: str = Query("desc"),
+    usuario_logado=Depends(get_usuario_autorizado("qualquer"))
+):
+    usuario_logado_id = int(usuario_logado["sub"])
+    papeis = usuario_logado["papeis"]
+
+    if "ADMIN" not in papeis:
         usuario_id = usuario_logado_id
 
     return AuditoriaServico.listar_auditoria_filtrada(
@@ -61,5 +94,29 @@ def listar_auditoria_filtrada(
         acao=acao,
         data_inicio=data_inicio,
         data_fim=data_fim,
-        limit=limit
+        page=page,
+        page_size=page_size,
+        order_by=order_by,
+        order_dir=order_dir
     )
+
+# ============================================================
+# AUDITORIA POR USUÁRIO (SEM CONFLITO)
+# ============================================================
+
+@router.get("/usuario/{usuario_id}")
+def listar_auditoria_usuario(
+    usuario_id: int,
+    usuario_logado=Depends(get_usuario_autorizado("qualquer")),
+    limit: int = Query(100, ge=1, le=500)
+):
+    usuario_logado_id = int(usuario_logado["sub"])
+    papeis = usuario_logado["papeis"]
+
+    if "ADMIN" not in papeis and usuario_logado_id != usuario_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Você não tem permissão para acessar a auditoria deste usuário"
+        )
+
+    return AuditoriaServico.listar_auditoria_por_usuario(usuario_id, limit)
