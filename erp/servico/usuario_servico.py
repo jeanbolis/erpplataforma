@@ -41,11 +41,12 @@ class UsuarioServico:
 
         token = TokenServico.gerar_token(usuario)
 
-        # ✅ AUDITORIA CORRETA – dentro do método, onde "usuario" existe
+        # AUDITORIA CORRETA – dentro do método, onde "usuario" existe
         AuditoriaServico.auditar(
-            usuario=usuario,
+            usuario_id=usuario["id"],
+            email_usuario=usuario["email"],
             acao="LOGIN",
-            recurso="autenticacao",
+            recurso="auth",
             detalhes="Login efetuado com sucesso"
         )
 

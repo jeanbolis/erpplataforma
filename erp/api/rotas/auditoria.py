@@ -9,13 +9,14 @@ router = APIRouter(
 )
 
 # ============================================================
-# EXPORTAÇÕES (ROTAS FIXAS)
+# EXPORTAÇÕES (CSV / EXCEL) — COM FILTROS
 # ============================================================
 
 @router.get("/export/csv")
 def exportar_auditoria_csv(
     usuario_id: int | None = Query(None),
     acao: str | None = Query(None),
+    email_usuario: str | None = Query(None),
     data_inicio: str | None = Query(None),
     data_fim: str | None = Query(None),
     usuario_logado=Depends(get_usuario_autorizado("qualquer"))
@@ -26,24 +27,28 @@ def exportar_auditoria_csv(
     # Usuário comum só exporta a própria auditoria
     if "ADMIN" not in papeis:
         usuario_id = usuario_logado_id
+        email_usuario = None  # evita tentar filtrar outros usuários
 
     dados = AuditoriaServico.listar_auditoria_filtrada(
         usuario_id=usuario_id,
         acao=acao,
+        email_usuario=email_usuario,
         data_inicio=data_inicio,
         data_fim=data_fim,
         page=1,
         page_size=100_000,
         order_by="criado_em",
-        order_dir="desc"
+        order_dir="DESC",
     )
 
     return exportar_csv("auditoria.csv", dados)
+
 
 @router.get("/export/excel")
 def exportar_auditoria_excel(
     usuario_id: int | None = Query(None),
     acao: str | None = Query(None),
+    email_usuario: str | None = Query(None),
     data_inicio: str | None = Query(None),
     data_fim: str | None = Query(None),
     usuario_logado=Depends(get_usuario_autorizado("qualquer"))
@@ -53,55 +58,61 @@ def exportar_auditoria_excel(
 
     if "ADMIN" not in papeis:
         usuario_id = usuario_logado_id
+        email_usuario = None
 
     dados = AuditoriaServico.listar_auditoria_filtrada(
         usuario_id=usuario_id,
         acao=acao,
+        email_usuario=email_usuario,
         data_inicio=data_inicio,
         data_fim=data_fim,
         page=1,
         page_size=100_000,
         order_by="criado_em",
-        order_dir="desc"
+        order_dir="DESC",
     )
 
     return exportar_excel("auditoria.xlsx", dados)
 
+
 # ============================================================
-# LISTAGEM GERAL COM FILTROS + PAGINAÇÃO
+# LISTAGEM GERAL — FILTROS + PAGINAÇÃO
 # ============================================================
 
 @router.get("")
 def listar_auditoria(
     usuario_id: int | None = Query(None),
     acao: str | None = Query(None),
+    email_usuario: str | None = Query(None),
     data_inicio: str | None = Query(None),
     data_fim: str | None = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    order_by: str = Query("criado_em"),
-    order_dir: str = Query("desc"),
+    page_size: int = Query(10, ge=1, le=100),
     usuario_logado=Depends(get_usuario_autorizado("qualquer"))
 ):
     usuario_logado_id = int(usuario_logado["sub"])
     papeis = usuario_logado["papeis"]
 
+    # Usuário comum só vê a própria auditoria
     if "ADMIN" not in papeis:
         usuario_id = usuario_logado_id
+        email_usuario = None
 
     return AuditoriaServico.listar_auditoria_filtrada(
         usuario_id=usuario_id,
         acao=acao,
+        email_usuario=email_usuario,
         data_inicio=data_inicio,
         data_fim=data_fim,
         page=page,
         page_size=page_size,
-        order_by=order_by,
-        order_dir=order_dir
+        order_by="criado_em",
+        order_dir="DESC",
     )
 
+
 # ============================================================
-# AUDITORIA POR USUÁRIO (SEM CONFLITO)
+# AUDITORIA POR USUÁRIO (ROTA ESPECÍFICA)
 # ============================================================
 
 @router.get("/usuario/{usuario_id}")

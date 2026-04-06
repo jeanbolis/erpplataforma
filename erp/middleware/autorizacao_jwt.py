@@ -37,10 +37,10 @@ class MiddlewareAutorizacaoJWT:
             )
         
         AuditoriaServico.auditar(
-            usuario=payload,
+            usuario_id=payload["sub"],
+            email_usuario=payload["email"],
             acao="ACESSO",
             recurso=recurso,
             detalhes="Acesso autorizado via JWT"
         )
-
         return payload
