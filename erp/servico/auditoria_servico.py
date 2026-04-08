@@ -31,6 +31,30 @@ class AuditoriaServico:
         order_by="criado_em",
         order_dir="DESC",
     ):
+        registros = AuditoriaRepository.listar_com_filtros(
+            usuario_id=usuario_id,
+            acao=acao,
+            email_usuario=email_usuario,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            page=page,
+            page_size=page_size,
+            order_by=order_by,
+            order_dir=order_dir,
+        )
+
+        total = AuditoriaRepository.contar_com_filtros(
+            usuario_id=usuario_id,
+            acao=acao,
+            email_usuario=email_usuario,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+        )
+
+        return {
+            "dados": registros,
+            "total": total
+        }
         return AuditoriaRepository.listar_com_filtros(
             usuario_id=usuario_id,
             acao=acao,

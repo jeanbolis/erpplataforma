@@ -1,10 +1,15 @@
 import bcrypt
+from fastapi import HTTPException
 from erp.repositorio.usuario_repo import UsuarioRepository
 from erp.servico.token_servico import TokenServico
 from erp.servico.auditoria_servico import AuditoriaServico
 
 
 class UsuarioServico:
+
+    # =========================================
+    # CRIAÇÃO / AUTENTICAÇÃO
+    # =========================================
 
     @staticmethod
     def criar_usuario(nome: str, email: str, senha_plana: str) -> int:
@@ -41,7 +46,6 @@ class UsuarioServico:
 
         token = TokenServico.gerar_token(usuario)
 
-        # AUDITORIA CORRETA – dentro do método, onde "usuario" existe
         AuditoriaServico.auditar(
             usuario_id=usuario["id"],
             email_usuario=usuario["email"],
@@ -55,123 +59,92 @@ class UsuarioServico:
                 "id": usuario["id"],
                 "nome": usuario["nome"],
                 "email": usuario["email"],
-                "papeis": usuario["papeis"]
+                "papeis": usuario["papeis"],
             },
             "token": token
         }
-    
-    @staticmethod
-    def criar_usuario_com_papel(
-        nome: str,
-        email: str,
-        senha_plana: str,
-        papel_nome: str
-    ) -> int:
-        # 1. Criar usuário
-        usuario_id = UsuarioServico.criar_usuario(
-            nome=nome,
-            email=email,
-            senha_plana=senha_plana
-        )
 
-        # 2. Buscar ID do papel
-        papel_id = UsuarioRepository.obter_papel_por_nome(papel_nome)
-        if not papel_id:
-            raise ValueError(f"Papel '{papel_nome}' não existe")
-
-        # 3. Vincular papel
-        UsuarioRepository.vincular_papel(usuario_id, papel_id)
-
-        return usuario_id
-    
-    @staticmethod
-    def listar_usuarios():
-        return UsuarioRepository.listar_usuarios()
-    
-    @staticmethod
-    def alterar_papel_usuario(usuario_id: int, papel_nome: str):
-        papel_id = UsuarioRepository.obter_papel_por_nome(papel_nome)
-        if not papel_id:
-            raise ValueError(f"Papel '{papel_nome}' não existe")
-
-        UsuarioRepository.atualizar_papel(usuario_id, papel_id)
+    # =========================================
+    # TROCA DE SENHA
+    # =========================================
 
     @staticmethod
     def trocar_senha(
-        usuario_id: int,
-        senha_atual: str,
-        nova_senha: str
+        usuario_alvo_id: int,
+        nova_senha: str,
+        usuario_logado: dict,
+        senha_atual: str | None = None
     ):
-        usuario = UsuarioRepository.obter_por_id(usuario_id)
+        usuario = UsuarioRepository.obter_por_id(usuario_alvo_id)
         if not usuario:
-            raise ValueError("Usuário não encontrado")
+            raise HTTPException(404, "Usuário não encontrado")
 
-        # Validar senha atual
-        senha_ok = bcrypt.checkpw(
-            senha_atual.encode("utf-8"),
-            usuario["senha_hash"].encode("utf-8")
+        usuario_logado_id = int(usuario_logado["sub"])
+        papeis = usuario_logado.get("papeis", [])
+        eh_admin = "ADMIN" in papeis
+
+        if usuario_logado_id != usuario_alvo_id and not eh_admin:
+            raise HTTPException(403, "Você só pode trocar sua própria senha")
+
+        if usuario_logado_id == usuario_alvo_id:
+            if not senha_atual:
+                raise HTTPException(400, "Senha atual obrigatória")
+
+            if not bcrypt.checkpw(
+                senha_atual.encode(),
+                usuario["senha_hash"].encode()
+            ):
+                raise HTTPException(400, "Senha atual incorreta")
+
+        nova_hash = bcrypt.hashpw(
+            nova_senha.encode(),
+            bcrypt.gensalt()
+        ).decode()
+
+        UsuarioRepository.atualizar_senha(usuario_alvo_id, nova_hash)
+
+    # =========================================
+    # ATIVAR / INATIVAR
+    # =========================================
+
+    @staticmethod
+    def inativar_usuario(usuario_alvo_id: int, usuario_logado: dict):
+        usuario_logado_id = int(usuario_logado["sub"])
+        papeis = usuario_logado.get("papeis", [])
+
+        if "ADMIN" not in papeis:
+            raise HTTPException(403, "Apenas ADMIN pode inativar usuários")
+
+        if usuario_logado_id == usuario_alvo_id:
+            raise HTTPException(403, "Você não pode inativar seu próprio usuário")
+
+        UsuarioRepository.inativar_usuario(usuario_alvo_id)
+
+    @staticmethod
+    def reativar_usuario(usuario_alvo_id: int, usuario_logado: dict):
+        papeis = usuario_logado.get("papeis", [])
+
+        if "ADMIN" not in papeis:
+            raise HTTPException(403, "Apenas ADMIN pode reativar usuários")
+
+        UsuarioRepository.reativar_usuario(usuario_alvo_id)
+
+        AuditoriaServico.auditar(
+            usuario_id=int(usuario_logado["sub"]),
+            email_usuario=usuario_logado["email"],
+            acao="REATIVAR_USUARIO",
+            recurso=f"usuarios/{usuario_alvo_id}",
+            detalhes="Usuário reativado por ADMIN"
         )
 
-        if not senha_ok:
-            raise ValueError("Senha atual incorreta")
-
-        # Gerar hash da nova senha
-        nova_hash = bcrypt.hashpw(
-            nova_senha.encode("utf-8"),
-            bcrypt.gensalt()
-        ).decode("utf-8")
-
-        UsuarioRepository.atualizar_senha(usuario_id, nova_hash)
+    # =========================================
+    # CONSULTAS
+    # =========================================
 
     @staticmethod
-    def obter_por_id(usuario_id: int):
-        sql = "SELECT * FROM usuarios WHERE id = %s"
-        with get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute(sql, (usuario_id,))
-            return cursor.fetchone()
-        
-    @staticmethod
-    def resetar_senha_admin(usuario_id: int, nova_senha: str):
-        usuario = UsuarioRepository.obter_por_id(usuario_id)
-        if not usuario:
-            raise ValueError("Usuário não encontrado")
+    def listar_usuarios():
+        return UsuarioRepository.listar_usuarios()
 
-        senha_hash = bcrypt.hashpw(
-            nova_senha.encode("utf-8"),
-            bcrypt.gensalt()
-        ).decode("utf-8")
-
-        UsuarioRepository.atualizar_senha(usuario_id, senha_hash)
-
-    @staticmethod
-    def inativar_usuario(usuario_id: int):
-        usuario = UsuarioRepository.obter_por_id(usuario_id)
-        if not usuario:
-            raise ValueError("Usuário não encontrado")
-
-        UsuarioRepository.inativar_usuario(usuario_id)
-
-    @staticmethod
-    def reativar_usuario(usuario_id: int):
-        usuario = UsuarioRepository.obter_por_id(usuario_id)
-        if not usuario:
-            raise ValueError("Usuário não encontrado")
-
-        UsuarioRepository.reativar_usuario(usuario_id)
-
-    @staticmethod
-    def obter_me(usuario_id: int):
-        usuario = UsuarioRepository.obter_perfil(usuario_id)
-        if not usuario:
-            raise ValueError("Usuário não encontrado")
-
-        # Anexar papéis
-        papeis = UsuarioRepository.papeis_do_usuario(usuario_id)
-        usuario["papeis"] = papeis
-
-        return usuario
-    
     @staticmethod
     def listar_usuarios_paginado(
         page: int,
@@ -182,3 +155,12 @@ class UsuarioServico:
         return UsuarioRepository.listar_usuarios_paginado(
             page, page_size, order_by, order_dir
         )
+
+    @staticmethod
+    def obter_me(usuario_id: int):
+        usuario = UsuarioRepository.obter_perfil(usuario_id)
+        if not usuario:
+            raise HTTPException(404, "Usuário não encontrado")
+
+        usuario["papeis"] = UsuarioRepository.papeis_do_usuario(usuario_id)
+        return usuario

@@ -137,3 +137,43 @@ class AuditoriaRepository:
             cursor = conn.cursor(dictionary=True)
             cursor.execute(sql, tuple(params))
             return cursor.fetchall()
+        
+    @staticmethod
+    def contar_com_filtros(
+        usuario_id=None,
+        acao=None,
+        email_usuario=None,
+        data_inicio=None,
+        data_fim=None,
+    ):
+        sql = """
+            SELECT COUNT(*) AS total
+            FROM auditoria
+            WHERE 1 = 1
+        """
+        params = []
+
+        if usuario_id:
+            sql += " AND usuario_id = %s"
+            params.append(usuario_id)
+
+        if acao:
+            sql += " AND acao = %s"
+            params.append(acao)
+
+        if email_usuario:
+            sql += " AND email_usuario LIKE %s"
+            params.append(f"%{email_usuario}%")
+
+        if data_inicio:
+            sql += " AND criado_em >= %s"
+            params.append(data_inicio)
+
+        if data_fim:
+            sql += " AND criado_em <= %s"
+            params.append(data_fim)
+
+        with get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(sql, tuple(params))
+            return cursor.fetchone()["total"]
